@@ -128,6 +128,11 @@ async def execute_command(agent, command: str):
         print(f"\n[Igris]: {final_reply}")
     except Exception as e:
         print(f"\n[Igris]: Error while executing command: {e}")
+    finally:
+        try:
+            agent.conversation.clear_history()
+        except Exception:
+            pass
 
 async def main():
     # 1. Show GUI language selector popup first
