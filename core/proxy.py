@@ -75,22 +75,89 @@ def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
     # 3. Get tools definition
     openai_tools = []
     gemini_tools = body.get("tools", [])
+    
+    # Custom parameter schemas override to bypass SDK reflection limitations
+    custom_schemas = {
+        "control_volume": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["increase", "decrease", "set"],
+                    "description": "The volume adjustment action: 'increase' to turn up, 'decrease' to turn down, or 'set' to set a specific level."
+                },
+                "level": {
+                    "type": "integer",
+                    "description": "Specific volume percentage level from 0 to 100. Required only when action is 'set'."
+                }
+            },
+            "required": ["action"]
+        },
+        "control_brightness": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["increase", "decrease", "set"],
+                    "description": "The brightness adjustment action: 'increase' to turn up, 'decrease' to turn down, or 'set' to set a specific level."
+                },
+                "level": {
+                    "type": "integer",
+                    "description": "Specific brightness percentage level from 0 to 100. Required only when action is 'set'."
+                }
+            },
+            "required": ["action"]
+        },
+        "open_application": {
+            "type": "object",
+            "properties": {
+                "app_name": {
+                    "type": "string",
+                    "description": "Name of the application to open (e.g. 'chrome', 'notepad', 'calc', 'browser')."
+                },
+                "profile": {
+                    "type": "string",
+                    "description": "Optional profile folder directory name if launching a browser (e.g. 'Default', 'Profile 1'). Defaults to 'Default'."
+                }
+            },
+            "required": ["app_name"]
+        },
+        "browser_control": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["new_tab", "open_url"],
+                    "description": "The browser operation to perform. 'new_tab' opens a new tab. 'open_url' navigates to a specified URL."
+                },
+                "url": {
+                    "type": "string",
+                    "description": "The target URL to open (required only when action is 'open_url')."
+                }
+            },
+            "required": ["action"]
+        }
+    }
+    
     for t in gemini_tools:
         f_decls = t.get("functionDeclarations", [])
         for f in f_decls:
-            params = f.get("parameters", {})
-            # Convert type to lowercase as required by Ollama
-            if "properties" in params:
-                for prop in params["properties"].values():
-                    if "type" in prop:
-                        prop["type"] = prop["type"].lower()
-            if "type" in params:
-                params["type"] = params["type"].lower()
+            name = f.get("name")
+            params = custom_schemas.get(name)
+            if not params:
+                params = f.get("parameters", {})
+                # Convert type to lowercase as required by Ollama
+                if "properties" in params:
+                    for prop in params["properties"].values():
+                        if "type" in prop:
+                            prop["type"] = prop["type"].lower()
+                if "type" in params:
+                    params["type"] = params["type"].lower()
                 
             openai_tools.append({
                 "type": "function",
                 "function": {
-                    "name": f.get("name"),
+                    "name": name,
                     "description": f.get("description", ""),
                     "parameters": params
                 }
