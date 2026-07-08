@@ -14,10 +14,13 @@ if sys.platform == "win32":
             os.path.join(nvidia_dir, "cublas", "bin"),
             os.path.join(nvidia_dir, "cudnn", "bin"),
             os.path.join(nvidia_dir, "cuda_nvrtc", "bin"),
+            os.path.join(nvidia_dir, "cuda_runtime", "bin"),
         ]
         for path in dll_paths:
             if os.path.exists(path):
                 os.add_dll_directory(path)
+        # Prepend directories to system PATH for compiled C/C++ extensions
+        os.environ["PATH"] = ";".join(dll_paths) + ";" + os.environ["PATH"]
     except Exception:
         pass
 
