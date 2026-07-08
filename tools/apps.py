@@ -1,6 +1,7 @@
 import asyncio
 import re
 import webbrowser
+from typing import Literal
 
 async def open_application(app_name: str, profile: str = None) -> str:
     """
@@ -72,7 +73,7 @@ async def open_application(app_name: str, profile: str = None) -> str:
     except Exception as e:
         return f"System error while opening application '{app_name}': {str(e)}"
  
-async def browser_control(action: str, url: str = None) -> str:
+async def browser_control(action: Literal["new_tab", "open_url"], url: str = None) -> str:
     """
     Perform browser operations like opening a new tab or navigating to a specific URL.
     This opens the URL directly inside Google Chrome's 'Default' profile to avoid Microsoft Edge.
