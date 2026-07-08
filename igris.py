@@ -235,11 +235,11 @@ async def main():
                         
                     confirm_lower = confirm_speech.lower().strip()
                     if selected_lang == "vi":
-                        yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y"]
-                        no_keywords = ["không", "khong", "hủy", "huy", "no", "n"]
+                        yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y", "đồng ý", "dong y", "chấp nhận", "chap nhan", "ok"]
+                        no_keywords = ["không", "khong", "hủy", "huy", "no", "n", "từ chối", "tu choi", "bỏ qua", "bo qua"]
                     else:
-                        yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok"]
-                        no_keywords = ["no", "n", "cancel", "incorrect", "stop"]
+                        yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok", "accept", "approve", "agree", "proceed"]
+                        no_keywords = ["no", "n", "cancel", "incorrect", "stop", "reject", "deny", "refuse", "decline"]
                         
                     is_yes = any(kw in confirm_lower for kw in yes_keywords)
                     is_no = any(kw in confirm_lower for kw in no_keywords)
