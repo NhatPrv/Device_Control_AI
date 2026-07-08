@@ -121,6 +121,68 @@ async def execute_command(agent, command: str):
     except Exception as e:
         print(f"\n[Igris]: Error while executing command: {e}")
 
+async def confirm_and_execute_command(agent, stt_manager, command: str, language: str) -> bool:
+    """
+    Asks the Master to confirm the transcribed command before executing it.
+    Returns True if executed, False if canceled or timed out.
+    """
+    # Ask for confirmation
+    if language == "vi":
+        print(f"\n[Igris]: Thưa Chủ nhân, có phải người đã ra lệnh: \"{command}\"? Xin xác nhận (Có/Không).")
+    else:
+        print(f"\n[Igris]: Master, did you say: \"{command}\"? Please confirm (Yes/No).")
+        
+    print("--- 🎤 LISTENING FOR CONFIRMATION (10s timeout)... ---")
+    try:
+        # Listen for Yes/No with 10s timeout
+        confirm_speech = await asyncio.wait_for(stt_manager.listen(), timeout=10.0)
+        if not confirm_speech:
+            if language == "vi":
+                print("\n[Igris]: Không nhận được phản hồi. Đã hủy lệnh.")
+            else:
+                print("\n[Igris]: No response received. Command canceled.")
+            return False
+            
+        confirm_lower = confirm_speech.lower().strip()
+        
+        # Define keywords based on selected language
+        if language == "vi":
+            yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y"]
+            no_keywords = ["không", "khong", "hủy", "huy", "no", "n"]
+        else:
+            yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok"]
+            no_keywords = ["no", "n", "cancel", "incorrect", "stop"]
+            
+        is_yes = any(kw in confirm_lower for kw in yes_keywords)
+        is_no = any(kw in confirm_lower for kw in no_keywords)
+        
+        if is_yes and not is_no:
+            if language == "vi":
+                print("\n[Igris]: Đã xác nhận. Bắt đầu thực thi...")
+            else:
+                print("\n[Igris]: Confirmed. Executing command...")
+            await execute_command(agent, command)
+            return True
+        elif is_no:
+            if language == "vi":
+                print("\n[Igris]: Đã hủy lệnh theo yêu cầu.")
+            else:
+                print("\n[Igris]: Command canceled as requested.")
+            return False
+        else:
+            if language == "vi":
+                print(f"\n[Igris]: Phản hồi không rõ ràng (\"{confirm_speech}\"). Đã hủy lệnh để đảm bảo an toàn.")
+            else:
+                print(f"\n[Igris]: Unclear response (\"{confirm_speech}\"). Command canceled for safety.")
+            return False
+            
+    except asyncio.TimeoutError:
+        if language == "vi":
+            print("\n[Igris]: Quá thời gian xác nhận (10s). Đã tự động hủy lệnh.")
+        else:
+            print("\n[Igris]: Confirmation timed out (10s). Command automatically canceled.")
+        return False
+
 async def main():
     # 1. Show GUI language selector popup first
     selected_lang = select_language_dialog()
@@ -177,8 +239,8 @@ async def main():
                             if "retreat" in command_part.lower():
                                 print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
                                 break
-                            print(f"\n[Igris]: Yes, Master! Executing direct command: \"{command_part}\"")
-                            await execute_command(agent, command_part)
+                            print(f"\n[Igris]: Yes, Master! Received direct command: \"{command_part}\"")
+                            await confirm_and_execute_command(agent, stt_manager, command_part, selected_lang)
                         else:
                             print("\n[Igris]: Yes, Master! I am listening to your command.")
                             waiting_for_wake = False
@@ -197,7 +259,7 @@ async def main():
                             print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
                             break
                             
-                        await execute_command(agent, command)
+                        await confirm_and_execute_command(agent, stt_manager, command, selected_lang)
                     except asyncio.TimeoutError:
                         print("\n[Igris]: Standby timeout (15s). Returning to wake-word standby mode.")
                     finally:
