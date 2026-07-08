@@ -27,7 +27,7 @@ if sys.platform == "win32":
 from faster_whisper import WhisperModel
 
 class STTManager:
-    def __init__(self, model_size="base", device="cuda", compute_type="float16"):
+    def __init__(self, model_size="base", device="cuda", compute_type="float16", language="en"):
         """
         Initialize Faster-Whisper model running on CUDA GPU.
         """
@@ -36,11 +36,16 @@ class STTManager:
         self.sample_rate = 16000
         self.threshold = 0.025  # Energy threshold to start speaking (RMS)
         self.silence_limit = 1.2  # Max silence duration (seconds) before segmenting sentence
+        self.language = language
+        
+        if language == "vi":
+            self.initial_prompt = "Hey Igris, mở Chrome, mở Cốc Cốc, kiểm tra pin, tăng âm lượng, giảm độ sáng, retreat"
+        else:
+            self.initial_prompt = "Hey Igris, open Chrome, open Coc Coc, open Coc Coc browser, check the battery, volume, brightness, retreat"
         
     def transcribe(self, audio_data: np.ndarray) -> str:
         """
-        Transcribe numpy audio data to text.
-        Auto-detects language (English, Vietnamese, Japanese, Chinese, etc.).
+        Transcribe numpy audio data to text with forced language constraints.
         """
         try:
             segments, info = self.model.transcribe(
@@ -48,7 +53,8 @@ class STTManager:
                 beam_size=5,
                 vad_filter=True,  # Use built-in Silero VAD to filter out silence/noise
                 vad_parameters=dict(min_silence_duration_ms=500),
-                initial_prompt="Hey Igris, open Chrome, check the battery, volume, brightness, mở máy tính, tăng độ sáng, retreat"
+                initial_prompt=self.initial_prompt,
+                language=self.language
             )
             text = "".join(segment.text for segment in segments)
             return text.strip()
@@ -82,7 +88,10 @@ class STTManager:
         is_speaking = False
         silence_time = 0.0
         
-        print("\n--- 🎧 IGRIS IS LISTENING... ---")
+        if self.language == "vi":
+            print("\n--- 🎧 IGRIS ĐANG NGHE... ---")
+        else:
+            print("\n--- 🎧 IGRIS IS LISTENING... ---")
         
         with stream:
             while True:
@@ -98,7 +107,10 @@ class STTManager:
                 
                 if rms > self.threshold:
                     if not is_speaking:
-                        print("Igris: Yes, I am listening...")
+                        if self.language == "vi":
+                            print("Igris: Dạ, thần đang nghe...")
+                        else:
+                            print("Igris: Yes, I am listening...")
                         is_speaking = True
                     recording.append(data)
                     silence_time = 0.0
@@ -121,9 +133,16 @@ class STTManager:
         audio_data = np.concatenate(recording, axis=0).flatten()
         
         # Run transcription asynchronously in ThreadPool to avoid blocking main event loop
-        print("Igris: Transcribing speech...")
+        if self.language == "vi":
+            print("Igris: Đang dịch giọng nói...")
+        else:
+            print("Igris: Transcribing speech...")
+            
         text = await loop.run_in_executor(None, self.transcribe, audio_data)
         
         if text:
-            print(f"-> Master said: \"{text}\"")
+            if self.language == "vi":
+                print(f"-> Chủ nhân nói: \"{text}\"")
+            else:
+                print(f"-> Master said: \"{text}\"")
         return text
