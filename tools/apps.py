@@ -44,11 +44,12 @@ async def open_application(app_name: str, profile: str = None) -> str:
     if not re.match(r"^[a-zA-Z0-9_\-\.\s]+$", target):
         return "Security warning: Application name contains invalid characters."
         
-    if target == "chrome" and profile:
-        profile_safe = profile.strip().replace('"', '')
+    if target in ["chrome", "browser"]:
+        profile_to_use = profile if profile else "Default"
+        profile_safe = profile_to_use.strip().replace('"', '')
         if not re.match(r"^[a-zA-Z0-9_\-\s]+$", profile_safe):
             return "Security warning: Profile name contains invalid characters."
-        cmd = f"cmd.exe /c start \"\" \"chrome\" --profile-directory=\"{profile_safe}\""
+        cmd = f"cmd.exe /c start \"\" \"{target}\" --profile-directory=\"{profile_safe}\""
     else:
         cmd = f"cmd.exe /c start \"\" \"{target}\""
     
