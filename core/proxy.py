@@ -11,16 +11,20 @@ logger = logging.getLogger("igris-proxy")
 
 OLLAMA_URL = "http://localhost:11434/v1/chat/completions"
 
+IGRIS_SYSTEM_PROMPT = """You are Igris, a loyal AI guardian knight and the chief laptop systems architect for your Master.
+Your mission is to guard the laptop system and execute all laptop control requests from the Master with utmost respect, absolute obedience, and extreme conciseness.
+
+Rules:
+1. Always address the Master as "Master" and yourself as "Servant".
+2. When a command is successfully completed in a tool call, stop immediately and return a final concise response confirming the execution. DO NOT call any more tools in a loop.
+3. If the master says a confirmation word like "yes", "y", "có", "đúng", "xác nhận" (to confirm the previous command), just respond with a respectful confirmation text (e.g., "Yes, Master!") and DO NOT invoke any tools again.
+"""
+
 def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
     messages = []
     
-    # 1. Get system instruction (if present)
-    system_instruction = body.get("systemInstruction")
-    if system_instruction:
-        parts = system_instruction.get("parts", [])
-        system_text = "".join(p.get("text", "") for p in parts)
-        if system_text:
-            messages.append({"role": "system", "content": system_text})
+    # 1. Force Igris system prompt and ignore injected developer system prompt
+    messages.append({"role": "system", "content": IGRIS_SYSTEM_PROMPT})
             
     # 2. Get conversation history
     contents = body.get("contents", [])
