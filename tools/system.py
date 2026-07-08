@@ -76,10 +76,12 @@ async def get_battery_status() -> str:
     except Exception as e:
         return f"Error checking battery: {str(e)}"
 
-async def control_volume(action: str) -> str:
+async def control_volume(action: str, level: int = None) -> str:
     """
-    Increase/decrease system volume by calling Core Audio API via PowerShell C#.
-    Actions supported: 'increase' / 'tăng', 'decrease' / 'giảm'.
+    Control system volume.
+    Parameters:
+    - action: 'increase' to turn up, 'decrease' to turn down, or 'set' to set a specific percentage level.
+    - level: specific volume percentage from 0 to 100 (required only when action is 'set').
     """
     action_lower = action.lower().strip()
     try:
@@ -99,18 +101,22 @@ async def control_volume(action: str) -> str:
             
         current_vol = float(vol_str)
         
-        if action_lower in ["increase", "tăng"]:
-            # Increase by 10% (0.1)
+        if action_lower == "set":
+            if level is None:
+                return "Error: Volume level percentage must be specified for 'set' action."
+            target_level = max(0, min(100, int(level)))
+            new_vol = target_level / 100.0
+            action_desc = "Set"
+        elif action_lower in ["increase", "tăng"]:
             new_vol = min(current_vol + 0.1, 1.0)
             action_desc = "Increased"
         elif action_lower in ["decrease", "giảm"]:
-            # Decrease by 10% (0.1)
             new_vol = max(current_vol - 0.1, 0.0)
             action_desc = "Decreased"
         else:
             return f"Volume control action '{action}' is not supported."
             
-        if new_vol == current_vol:
+        if new_vol == current_vol and action_lower != "set":
             return f"Report: System volume is already at boundary limit ({int(current_vol * 100)}%)."
             
         # Set new volume
@@ -126,10 +132,12 @@ async def control_volume(action: str) -> str:
     except Exception as e:
         return f"Error while controlling volume: {str(e)}"
 
-async def control_brightness(action: str) -> str:
+async def control_brightness(action: str, level: int = None) -> str:
     """
-    Increase/decrease laptop screen brightness via WMI/CimInstance.
-    Actions supported: 'increase' / 'tăng', 'decrease' / 'giảm'.
+    Control laptop screen brightness.
+    Parameters:
+    - action: 'increase' to turn up, 'decrease' to turn down, or 'set' to set a specific percentage level.
+    - level: specific brightness percentage from 0 to 100 (required only when action is 'set').
     """
     action_lower = action.lower().strip()
     try:
@@ -148,18 +156,21 @@ async def control_brightness(action: str) -> str:
             
         current_bright = int(bright_str)
         
-        if action_lower in ["increase", "tăng"]:
-            # Increase by 10%
+        if action_lower == "set":
+            if level is None:
+                return "Error: Brightness level percentage must be specified for 'set' action."
+            new_bright = max(0, min(100, int(level)))
+            action_desc = "Set"
+        elif action_lower in ["increase", "tăng"]:
             new_bright = min(current_bright + 10, 100)
             action_desc = "Increased"
         elif action_lower in ["decrease", "giảm"]:
-            # Decrease by 10%
             new_bright = max(current_bright - 10, 0)
             action_desc = "Decreased"
         else:
             return f"Brightness control action '{action}' is not supported."
             
-        if new_bright == current_bright:
+        if new_bright == current_bright and action_lower != "set":
             return f"Report: Screen brightness is already at boundary limit ({current_bright}%)."
             
         # Set new brightness
