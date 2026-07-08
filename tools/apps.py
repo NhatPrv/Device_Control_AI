@@ -74,17 +74,21 @@ async def open_application(app_name: str, profile: str = None) -> str:
  
 async def browser_control(action: str, url: str = None) -> str:
     """
-    Control default browser actions (new_tab: Open new tab, open_url: Open specified URL).
-    This tool opens the default system browser (which might be Microsoft Edge).
-    Warning: If the user specifically requests to open the 'Google Chrome' browser, do NOT use this tool; use open_application(app_name='chrome') instead.
+    Perform browser operations like opening a new tab or navigating to a specific URL.
+    This opens the URL directly inside Google Chrome's 'Default' profile to avoid Microsoft Edge.
     """
     action_lower = action.lower().strip()
     
     if action_lower == "new_tab":
+        cmd = 'cmd.exe /c start "" "chrome" --profile-directory="Default" "https://www.google.com"'
         try:
-            # Open new tab defaulting to Google search
-            await asyncio.to_thread(webbrowser.open_new_tab, "https://www.google.com")
-            return "Successfully opened a new tab."
+            process = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await process.communicate()
+            return "Successfully opened a new tab in Google Chrome."
         except Exception as e:
             return f"Failed to open a new tab. Error: {str(e)}"
             
@@ -102,9 +106,15 @@ async def browser_control(action: str, url: str = None) -> str:
         if not re.match(r"^https?://[a-zA-Z0-9\-\.\/\?\&\=\#\_\%]+$", url_target):
             return "Security warning: URL contains invalid characters."
             
+        cmd = f'cmd.exe /c start "" "chrome" --profile-directory="Default" "{url_target}"'
         try:
-            await asyncio.to_thread(webbrowser.open, url_target)
-            return f"Successfully navigated browser to: {url_target}"
+            process = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            await process.communicate()
+            return f"Successfully navigated Google Chrome to: {url_target}"
         except Exception as e:
             return f"Failed to access page '{url_target}'. Error: {str(e)}"
     else:
