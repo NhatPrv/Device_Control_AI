@@ -2,10 +2,14 @@ import asyncio
 import re
 import webbrowser
 
-async def open_application(app_name: str) -> str:
+async def open_application(app_name: str, profile: str = None) -> str:
     """
     Open a local system application by name (e.g. 'chrome' to open Google Chrome, 'notepad', 'calc' for calculator).
     Use this tool if the user explicitly asks to open or launch the Google Chrome browser or any local app.
+    
+    Parameters:
+    - app_name: Name of the app (e.g., 'chrome', 'notepad').
+    - profile: Optional. If app_name is 'chrome', specify the profile directory name (e.g., 'Default', 'Profile 1', 'Profile 2') to open Chrome with that specific profile.
     """
     app_lower = app_name.lower().strip()
     
@@ -36,7 +40,13 @@ async def open_application(app_name: str) -> str:
     if not re.match(r"^[a-zA-Z0-9_\-\.\s]+$", target):
         return "Security warning: Application name contains invalid characters."
         
-    cmd = f"cmd.exe /c start \"\" \"{target}\""
+    if target == "chrome" and profile:
+        profile_safe = profile.strip().replace('"', '')
+        if not re.match(r"^[a-zA-Z0-9_\-\s]+$", profile_safe):
+            return "Security warning: Profile name contains invalid characters."
+        cmd = f"cmd.exe /c start \"\" \"chrome\" --profile-directory=\"{profile_safe}\""
+    else:
+        cmd = f"cmd.exe /c start \"\" \"{target}\""
     
     try:
         # Use create_subprocess_shell to run start command in cmd
@@ -48,6 +58,8 @@ async def open_application(app_name: str) -> str:
         stdout, stderr = await process.communicate()
         
         if process.returncode == 0:
+            if profile:
+                return f"Successfully opened application '{app_name}' with profile '{profile}'."
             return f"Successfully opened application '{app_name}'."
         else:
             err_msg = stderr.decode(errors='ignore').strip()
