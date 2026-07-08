@@ -72,7 +72,7 @@ def speak(text: str):
                 if 'David' in voices.Item(i).GetDescription():
                     sapi.Voice = voices.Item(i)
                     break
-            sapi.Rate = 1   # +25% faster: -1 was slightly slow, 1 is crisp and commanding
+            sapi.Rate = 3   # +25% faster: -1 was slightly slow, 1 is crisp and commanding
             sapi.Volume = 100
             sapi.Speak(text)
         except Exception:
@@ -102,7 +102,7 @@ async def execute_command(agent, command: str):
     except Exception as e:
         err_msg = f"Error while executing command: {e}"
         print(f"\n[Igris]: {err_msg}")
-        speak("Master, an error occurred while executing the command.")
+        speak("Error Master now")
 
 async def main():
     # 1. Start proxy on port 8000 in background and log to proxy.log
@@ -140,7 +140,7 @@ async def main():
                 
                 # Exit on "Retreat"
                 if "retreat" in speech_lower:
-                    msg = "As you wish, Master. Igris retreats into the shadows."
+                    msg = "Igris retreats now"
                     print(f"\n[Igris]: {msg}")
                     speak(msg)
                     break
@@ -152,7 +152,7 @@ async def main():
                     clear_screen()
                     
                     # Ask Master what they want
-                    wake_msg = "Yes, Master! What do you want?"
+                    wake_msg = "Speak your will"
                     print(f"\n[Igris]: {wake_msg}")
                     speak(wake_msg)
                         
@@ -164,28 +164,28 @@ async def main():
                         
                     cmd_lower = command.lower().strip()
                     if "retreat" in cmd_lower:
-                        msg = "As you wish, Master. Igris retreats into the shadows."
+                        msg = "Igris retreats now"
                         print(f"\n[Igris]: {msg}")
                         speak(msg)
                         break
                         
                     # Check for immediate cancel
                     if cmd_lower in ["cancel", "stop", "reject"]:
-                        cancel_msg = "Command dismissed, Master."
+                        cancel_msg = "Command dismissed Master"
                         print(f"\n[Igris]: {cancel_msg}")
                         speak(cancel_msg)
                         print("\nIgris: Standby...")
                         continue
                         
                     # Ask for confirmation
-                    confirm_prompt = f'You want me to "{command}", correct?'
+                    confirm_prompt = f'You want {command} correct'
                     print(f"\n[Igris]: {confirm_prompt}")
                     speak(confirm_prompt)
                         
                     # Listen for confirmation (no timeout)
                     confirm_speech = await stt_manager.listen()
                     if not confirm_speech:
-                        cancel_msg = "No response received. Command dismissed, Master."
+                        cancel_msg = "Dismissed no response"
                         print(f"\n[Igris]: {cancel_msg}")
                         speak(cancel_msg)
                         print("\nIgris: Standby...")
@@ -199,12 +199,12 @@ async def main():
                     is_no = any(kw in confirm_lower for kw in no_keywords)
                     
                     if is_yes and not is_no:
-                        exec_msg = "As you command, Master. Executing now."
+                        exec_msg = "Executing now Master"
                         print(f"\n[Igris]: {exec_msg}")
                         speak(exec_msg)
                         await execute_command(agent, command)
                     else:
-                        cancel_msg = "Command dismissed, Master."
+                        cancel_msg = "Command dismissed Master"
                         print(f"\n[Igris]: {cancel_msg}")
                         speak(cancel_msg)
                             
