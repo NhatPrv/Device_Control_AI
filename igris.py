@@ -140,7 +140,9 @@ async def main():
                 
                 # Exit on "Retreat"
                 if "retreat" in speech_lower:
-                    print("\n[Igris]: Retreating as commanded.")
+                    msg = "As you wish, Master. Igris retreats into the shadows."
+                    print(f"\n[Igris]: {msg}")
+                    speak(msg)
                     break
                     
                 # Wake up check
@@ -150,7 +152,9 @@ async def main():
                     clear_screen()
                     
                     # Ask Master what they want
-                    print("\n[Igris]: Yes, Master! What do you want?")
+                    wake_msg = "Yes, Master! What do you want?"
+                    print(f"\n[Igris]: {wake_msg}")
+                    speak(wake_msg)
                         
                     # Wait for command (no timeout)
                     command = await stt_manager.listen()
@@ -160,22 +164,30 @@ async def main():
                         
                     cmd_lower = command.lower().strip()
                     if "retreat" in cmd_lower:
-                        print("\n[Igris]: Retreating as commanded.")
+                        msg = "As you wish, Master. Igris retreats into the shadows."
+                        print(f"\n[Igris]: {msg}")
+                        speak(msg)
                         break
                         
                     # Check for immediate cancel
                     if cmd_lower in ["cancel", "stop", "reject"]:
-                        print("\n[Igris]: Command canceled.")
+                        cancel_msg = "Command dismissed, Master."
+                        print(f"\n[Igris]: {cancel_msg}")
+                        speak(cancel_msg)
                         print("\nIgris: Standby...")
                         continue
                         
                     # Ask for confirmation
-                    print(f"\n[Igris]: You want me to \"{command}\", correct?")
+                    confirm_prompt = f'You want me to "{command}", correct?'
+                    print(f"\n[Igris]: {confirm_prompt}")
+                    speak(confirm_prompt)
                         
                     # Listen for confirmation (no timeout)
                     confirm_speech = await stt_manager.listen()
                     if not confirm_speech:
-                        print("\n[Igris]: Command canceled.")
+                        cancel_msg = "No response received. Command dismissed, Master."
+                        print(f"\n[Igris]: {cancel_msg}")
+                        speak(cancel_msg)
                         print("\nIgris: Standby...")
                         continue
                         
@@ -187,10 +199,14 @@ async def main():
                     is_no = any(kw in confirm_lower for kw in no_keywords)
                     
                     if is_yes and not is_no:
-                        print("\n[Igris]: Confirmed. Executing...")
+                        exec_msg = "As you command, Master. Executing now."
+                        print(f"\n[Igris]: {exec_msg}")
+                        speak(exec_msg)
                         await execute_command(agent, command)
                     else:
-                        print("\n[Igris]: Command canceled.")
+                        cancel_msg = "Command dismissed, Master."
+                        print(f"\n[Igris]: {cancel_msg}")
+                        speak(cancel_msg)
                             
                     # Back to standby
                     print("\nIgris: Standby...")
