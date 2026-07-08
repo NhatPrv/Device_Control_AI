@@ -101,6 +101,12 @@ def parse_wake_word(speech: str) -> tuple[bool, str]:
             
     return False, ""
 
+def clear_screen():
+    """
+    Clears the console screen.
+    """
+    os.system('cls' if os.name == 'nt' else 'clear')
+
 async def execute_command(agent, command: str):
     """
     Send the command to the Agent to process tool calls and display the response.
@@ -121,78 +127,12 @@ async def execute_command(agent, command: str):
     except Exception as e:
         print(f"\n[Igris]: Error while executing command: {e}")
 
-async def confirm_and_execute_command(agent, stt_manager, command: str, language: str) -> bool:
-    """
-    Asks the Master to confirm the transcribed command before executing it.
-    Returns True if executed, False if canceled or timed out.
-    """
-    # Ask for confirmation
-    if language == "vi":
-        print(f"\n[Igris]: Thưa Chủ nhân, có phải người đã ra lệnh: \"{command}\"? Xin xác nhận (Có/Không).")
-    else:
-        print(f"\n[Igris]: Master, did you say: \"{command}\"? Please confirm (Yes/No).")
-        
-    print("--- 🎤 LISTENING FOR CONFIRMATION (10s timeout)... ---")
-    try:
-        # Listen for Yes/No with 10s timeout
-        confirm_speech = await asyncio.wait_for(stt_manager.listen(), timeout=10.0)
-        if not confirm_speech:
-            if language == "vi":
-                print("\n[Igris]: Không nhận được phản hồi. Đã hủy lệnh.")
-            else:
-                print("\n[Igris]: No response received. Command canceled.")
-            return False
-            
-        confirm_lower = confirm_speech.lower().strip()
-        
-        # Define keywords based on selected language
-        if language == "vi":
-            yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y"]
-            no_keywords = ["không", "khong", "hủy", "huy", "no", "n"]
-        else:
-            yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok"]
-            no_keywords = ["no", "n", "cancel", "incorrect", "stop"]
-            
-        is_yes = any(kw in confirm_lower for kw in yes_keywords)
-        is_no = any(kw in confirm_lower for kw in no_keywords)
-        
-        if is_yes and not is_no:
-            if language == "vi":
-                print("\n[Igris]: Đã xác nhận. Bắt đầu thực thi...")
-            else:
-                print("\n[Igris]: Confirmed. Executing command...")
-            await execute_command(agent, command)
-            return True
-        elif is_no:
-            if language == "vi":
-                print("\n[Igris]: Đã hủy lệnh theo yêu cầu.")
-            else:
-                print("\n[Igris]: Command canceled as requested.")
-            return False
-        else:
-            if language == "vi":
-                print(f"\n[Igris]: Phản hồi không rõ ràng (\"{confirm_speech}\"). Đã hủy lệnh để đảm bảo an toàn.")
-            else:
-                print(f"\n[Igris]: Unclear response (\"{confirm_speech}\"). Command canceled for safety.")
-            return False
-            
-    except asyncio.TimeoutError:
-        if language == "vi":
-            print("\n[Igris]: Quá thời gian xác nhận (10s). Đã tự động hủy lệnh.")
-        else:
-            print("\n[Igris]: Confirmation timed out (10s). Command automatically canceled.")
-        return False
-
 async def main():
     # 1. Show GUI language selector popup first
     selected_lang = select_language_dialog()
-    print(BANNER)
-    print(f"Igris: Selected Language Mode: {selected_lang.upper()}")
     
-    # 2. Start proxy on port 8000 in background
-    print("Igris: Setting up local API connection port...")
+    # 2. Start proxy on port 8000 in background quietly
     proxy_path = os.path.join(os.path.dirname(__file__), "core", "proxy.py")
-    
     try:
         proxy_process = subprocess.Popen(
             [sys.executable, proxy_path],
@@ -212,15 +152,17 @@ async def main():
         config = get_agent_config()
         
         # 4. Start communication session with Agent
-        print("Igris: Summoning guardian knight...")
         async with ag.Agent(config) as agent:
-            print("\nIgris: Greetings Master! I am standby and ready to guard the system.")
-            
+            # "sau khi config xong, trên terminal chỉ hiện thông báo đang nghe"
+            if selected_lang == "vi":
+                print("\nIgris: Đang lắng nghe...")
+            else:
+                print("\nIgris: Standby...")
+                
             waiting_for_wake = True
             
             while True:
                 if waiting_for_wake:
-                    print("\n--- 🛡️ IGRIS STANDBY - WAITING FOR WAKE WORD (\"Hey Igris\")... ---")
                     speech = await stt_manager.listen()
                     if not speech:
                         continue
@@ -229,43 +171,150 @@ async def main():
                     
                     # Exit on "Retreat"
                     if "retreat" in speech_lower:
-                        print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
+                        print("\n[Igris]: Retreating as commanded.")
                         break
                         
                     # Wake up check
                     is_woken, command_part = parse_wake_word(speech)
                     if is_woken:
+                        # Clear the screen immediately when wake word is heard
+                        clear_screen()
+                        
                         if command_part:
+                            # User spoke the wake word and command together
                             if "retreat" in command_part.lower():
-                                print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
+                                print("\n[Igris]: Retreating as commanded.")
                                 break
-                            print(f"\n[Igris]: Yes, Master! Received direct command: \"{command_part}\"")
-                            await confirm_and_execute_command(agent, stt_manager, command_part, selected_lang)
+                                
+                            # Ask for confirmation
+                            if selected_lang == "vi":
+                                print(f"\n[Igris]: Chủ nhân muốn \"{command_part}\" phải không?")
+                            else:
+                                print(f"\n[Igris]: You want me to \"{command_part}\", correct?")
+                                
+                            # Listen for confirmation (No timeout)
+                            confirm_speech = await stt_manager.listen()
+                            if not confirm_speech:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã hủy lệnh.")
+                                else:
+                                    print("\n[Igris]: Command canceled.")
+                                waiting_for_wake = True
+                                if selected_lang == "vi":
+                                    print("\nIgris: Đang lắng nghe...")
+                                else:
+                                    print("\nIgris: Standby...")
+                                continue
+                                
+                            confirm_lower = confirm_speech.lower().strip()
+                            if selected_lang == "vi":
+                                yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y"]
+                                no_keywords = ["không", "khong", "hủy", "huy", "no", "n"]
+                            else:
+                                yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok"]
+                                no_keywords = ["no", "n", "cancel", "incorrect", "stop"]
+                                
+                            is_yes = any(kw in confirm_lower for kw in yes_keywords)
+                            is_no = any(kw in confirm_lower for kw in no_keywords)
+                            
+                            if is_yes and not is_no:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã xác nhận. Bắt đầu thực thi...")
+                                else:
+                                    print("\n[Igris]: Confirmed. Executing...")
+                                await execute_command(agent, command_part)
+                            else:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã hủy lệnh.")
+                                else:
+                                    print("\n[Igris]: Command canceled.")
                         else:
-                            print("\n[Igris]: Yes, Master! I am listening to your command.")
-                            waiting_for_wake = False
+                            # User only spoke the wake word
+                            if selected_lang == "vi":
+                                print("\n[Igris]: Dạ, thưa Chủ nhân! Người muốn gì?")
+                            else:
+                                print("\n[Igris]: Yes, Master! What do you want?")
+                                
+                            # Wait for command (No timeout)
+                            command = await stt_manager.listen()
+                            if not command:
+                                waiting_for_wake = True
+                                if selected_lang == "vi":
+                                    print("\nIgris: Đang lắng nghe...")
+                                else:
+                                    print("\nIgris: Standby...")
+                                continue
+                                
+                            cmd_lower = command.lower().strip()
+                            if "retreat" in cmd_lower:
+                                print("\n[Igris]: Retreating as commanded.")
+                                break
+                                
+                            # Check if user says cancel immediately
+                            if cmd_lower in ["cancel", "hủy", "huy"]:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã hủy lệnh.")
+                                else:
+                                    print("\n[Igris]: Command canceled.")
+                                waiting_for_wake = True
+                                if selected_lang == "vi":
+                                    print("\nIgris: Đang lắng nghe...")
+                                else:
+                                    print("\nIgris: Standby...")
+                                continue
+                                
+                            # Ask for confirmation
+                            if selected_lang == "vi":
+                                print(f"\n[Igris]: Chủ nhân muốn \"{command}\" phải không?")
+                            else:
+                                print(f"\n[Igris]: You want me to \"{command}\", correct?")
+                                
+                            # Listen for confirmation (No timeout)
+                            confirm_speech = await stt_manager.listen()
+                            if not confirm_speech:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã hủy lệnh.")
+                                else:
+                                    print("\n[Igris]: Command canceled.")
+                                waiting_for_wake = True
+                                if selected_lang == "vi":
+                                    print("\nIgris: Đang lắng nghe...")
+                                else:
+                                    print("\nIgris: Standby...")
+                                continue
+                                
+                            confirm_lower = confirm_speech.lower().strip()
+                            if selected_lang == "vi":
+                                yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y"]
+                                no_keywords = ["không", "khong", "hủy", "huy", "no", "n"]
+                            else:
+                                yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok"]
+                                no_keywords = ["no", "n", "cancel", "incorrect", "stop"]
+                                
+                            is_yes = any(kw in confirm_lower for kw in yes_keywords)
+                            is_no = any(kw in confirm_lower for kw in no_keywords)
+                            
+                            if is_yes and not is_no:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã xác nhận. Bắt đầu thực thi...")
+                                else:
+                                    print("\n[Igris]: Confirmed. Executing...")
+                                await execute_command(agent, command)
+                            else:
+                                if selected_lang == "vi":
+                                    print("\n[Igris]: Đã hủy lệnh.")
+                                else:
+                                    print("\n[Igris]: Command canceled.")
+                                    
+                        # Go back to standby
+                        waiting_for_wake = True
+                        if selected_lang == "vi":
+                            print("\nIgris: Đang lắng nghe...")
+                        else:
+                            print("\nIgris: Standby...")
                     else:
                         continue
-                else:
-                    print("\n--- 🎤 LISTENING FOR MASTER'S COMMAND (15s timeout)... ---")
-                    try:
-                        # Set 15 seconds timeout for command input
-                        command = await asyncio.wait_for(stt_manager.listen(), timeout=15.0)
-                        if not command:
-                            continue
-                            
-                        cmd_lower = command.lower().strip()
-                        if "retreat" in cmd_lower:
-                            print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
-                            break
-                            
-                        await confirm_and_execute_command(agent, stt_manager, command, selected_lang)
-                    except asyncio.TimeoutError:
-                        print("\n[Igris]: Standby timeout (15s). Returning to wake-word standby mode.")
-                    finally:
-                        # Go back to wake word standby mode
-                        waiting_for_wake = True
-                    
+                        
     finally:
         # Stop proxy when exit
         print("\nIgris: Disconnecting ports...")
