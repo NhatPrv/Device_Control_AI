@@ -21,6 +21,32 @@ BANNER = """
 ===================================================================
 """
 
+def parse_wake_word(speech: str) -> tuple[bool, str]:
+    """
+    Checks if the speech contains any phonetic variation of the wake word "Hey Igris".
+    Returns (is_woken, command_part).
+    """
+    speech_lower = speech.lower().strip()
+    
+    # List of common mis-transcriptions/phonetic variations of "Hey Igris" by Whisper
+    wake_variations = [
+        "hey igris", "hey egris", "hey e-gris", "hey igres", "hey igrees",
+        "hey, i'm chris", "hey im chris", "hey i'm chris", "hey, i'm chris",
+        "hey, i creed", "hey i creed", "hey i greed",
+        "hey agreed", "hey i agreed", "hey chris",
+        "hay igris", "hai igris",
+        "ハイイクリー", "はい いくり", "hai ikuri"
+    ]
+    
+    for var in wake_variations:
+        idx = speech_lower.find(var)
+        if idx != -1:
+            # Extract the command trailing the wake word
+            command_part = speech[idx + len(var):].strip(",. ")
+            return True, command_part
+            
+    return False, ""
+
 async def execute_command(agent, command: str):
     """
     Send the command to the Agent to process tool calls and display the response.
@@ -87,12 +113,9 @@ async def main():
                         print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
                         break
                         
-                    # Wake up on "Hey Igris"
-                    if "hey igris" in speech_lower:
-                        # Check if command is appended in the same sentence
-                        idx = speech_lower.find("hey igris")
-                        command_part = speech[idx + len("hey igris"):].strip(",. ")
-                        
+                    # Wake up check
+                    is_woken, command_part = parse_wake_word(speech)
+                    if is_woken:
                         if command_part:
                             if "retreat" in command_part.lower():
                                 print("\n[Igris]: Retreating as commanded. Have a great day, Master!")
