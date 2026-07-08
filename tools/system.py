@@ -1,5 +1,6 @@
 import asyncio
 import re
+from typing import Literal
 
 # PowerShell script to communicate with Windows Core Audio API via C# (no Admin rights required)
 AUDIO_POWERSHELL_SCRIPT = """
@@ -76,7 +77,7 @@ async def get_battery_status() -> str:
     except Exception as e:
         return f"Error checking battery: {str(e)}"
 
-async def control_volume(action: str, level: int = None) -> str:
+async def control_volume(action: Literal["increase", "decrease", "set"], level: int = None) -> str:
     """
     Control system volume.
     Parameters:
@@ -132,7 +133,7 @@ async def control_volume(action: str, level: int = None) -> str:
     except Exception as e:
         return f"Error while controlling volume: {str(e)}"
 
-async def control_brightness(action: str, level: int = None) -> str:
+async def control_brightness(action: Literal["increase", "decrease", "set"], level: int = None) -> str:
     """
     Control laptop screen brightness.
     Parameters:
