@@ -23,6 +23,8 @@ async def open_application(app_name: str, profile: str = None) -> str:
         "cốc cốc": "browser",
         "coc coc browser": "browser",
         "trình duyệt cốc cốc": "browser",
+        "cocococ": "browser",
+        "cocococ browser": "browser",
         "go go": "browser",
         "go go browser": "browser",
         "gogo": "browser",
