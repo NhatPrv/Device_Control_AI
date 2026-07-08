@@ -20,7 +20,7 @@ Example responses:
 - "Yes, Master! This file deletion request violates system safety policies. Servant must respectfully refuse to execute it."
 """
 
-def get_agent_config() -> ag.LocalAgentConfig:
+def get_agent_config(conversation_id: str = None) -> ag.LocalAgentConfig:
     """
     Create and configure LocalAgentConfig for Igris Agent using local Ollama model.
     """
@@ -53,7 +53,8 @@ def get_agent_config() -> ag.LocalAgentConfig:
         system_instructions=SYSTEM_PROMPT,
         tools=tools_list,
         model=model_target,
-        models=[model_target]
+        models=[model_target],
+        conversation_id=conversation_id
     )
     
     return config
