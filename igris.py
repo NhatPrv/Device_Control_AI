@@ -2,6 +2,9 @@ import asyncio
 import sys
 import os
 import subprocess
+import threading
+import pythoncom
+import win32com.client
 import google.antigravity as ag
 from core.stt import STTManager
 from core.agent import get_agent_config
@@ -54,6 +57,30 @@ def clear_screen():
     """
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def speak(text: str):
+    """
+    Speak the given text using Windows SAPI TTS with a deep, dramatic male voice.
+    Runs asynchronously in a background thread so it does not block the main event loop.
+    """
+    def _speak():
+        pythoncom.CoInitialize()
+        try:
+            sapi = win32com.client.Dispatch('SAPI.SpVoice')
+            # Select deep male voice (Microsoft David) for a cool knight feel
+            voices = sapi.GetVoices()
+            for i in range(voices.Count):
+                if 'David' in voices.Item(i).GetDescription():
+                    sapi.Voice = voices.Item(i)
+                    break
+            sapi.Rate = -1   # Slightly slower = more dramatic, authoritative
+            sapi.Volume = 100
+            sapi.Speak(text)
+        except Exception:
+            pass
+        finally:
+            pythoncom.CoUninitialize()
+    threading.Thread(target=_speak, daemon=True).start()
+
 async def execute_command(agent, command: str):
     """
     Send the command to the Agent to process tool calls and display the response.
@@ -71,8 +98,11 @@ async def execute_command(agent, command: str):
         final_reply = "\n".join(clean_lines).strip()
         
         print(f"\n[Igris]: {final_reply}")
+        speak(final_reply)
     except Exception as e:
-        print(f"\n[Igris]: Error while executing command: {e}")
+        err_msg = f"Error while executing command: {e}"
+        print(f"\n[Igris]: {err_msg}")
+        speak("Master, an error occurred while executing the command.")
 
 async def main():
     # 1. Start proxy on port 8000 in background and log to proxy.log
