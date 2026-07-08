@@ -1,0 +1,179 @@
+import json
+import logging
+import httpx
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+# Cấu hình log
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("igris-proxy")
+
+OLLAMA_URL = "http://localhost:11434/v1/chat/completions"
+
+def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
+    messages = []
+    
+    # 1. Lấy system instruction (nếu có)
+    system_instruction = body.get("systemInstruction")
+    if system_instruction:
+        parts = system_instruction.get("parts", [])
+        system_text = "".join(p.get("text", "") for p in parts)
+        if system_text:
+            messages.append({"role": "system", "content": system_text})
+            
+    # 2. Lấy hội thoại lịch sử
+    contents = body.get("contents", [])
+    for content in contents:
+        role = content.get("role", "user")
+        openai_role = "assistant" if role == "model" else "user"
+        parts = content.get("parts", [])
+        
+        for part in parts:
+            if "text" in part:
+                messages.append({"role": openai_role, "content": part["text"]})
+            elif "functionCall" in part:
+                f_call = part["functionCall"]
+                name = f_call.get("name")
+                call_id = f"call_{name}"
+                messages.append({
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [{
+                        "id": call_id,
+                        "type": "function",
+                        "function": {
+                            "name": name,
+                            "arguments": json.dumps(f_call.get("args", {}))
+                        }
+                    }]
+                })
+            elif "functionResponse" in part:
+                f_resp = part["functionResponse"]
+                name = f_resp.get("name")
+                call_id = f"call_{name}"
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "name": name,
+                    "content": json.dumps(f_resp.get("response", {}))
+                })
+                
+    # 3. Lấy định nghĩa tools
+    openai_tools = []
+    gemini_tools = body.get("tools", [])
+    for t in gemini_tools:
+        f_decls = t.get("functionDeclarations", [])
+        for f in f_decls:
+            params = f.get("parameters", {})
+            # Chuyển kiểu dữ liệu sang chữ thường (Ollama yêu cầu lowercase)
+            if "properties" in params:
+                for prop in params["properties"].values():
+                    if "type" in prop:
+                        prop["type"] = prop["type"].lower()
+            if "type" in params:
+                params["type"] = params["type"].lower()
+                
+            openai_tools.append({
+                "type": "function",
+                "function": {
+                    "name": f.get("name"),
+                    "description": f.get("description", ""),
+                    "parameters": params
+                }
+            })
+            
+    req = {
+        "model": model_name,
+        "messages": messages,
+    }
+    if openai_tools:
+        req["tools"] = openai_tools
+        
+    return req
+
+def translate_openai_to_gemini(openai_resp: dict) -> dict:
+    choices = openai_resp.get("choices", [])
+    if not choices:
+        return {"candidates": []}
+        
+    choice = choices[0]
+    message = choice.get("message", {})
+    gemini_parts = []
+    
+    # 1. Lấy nội dung text phản hồi
+    content_text = message.get("content")
+    if content_text:
+        gemini_parts.append({"text": content_text})
+        
+    # 2. Lấy thông tin gọi hàm (tool call)
+    tool_calls = message.get("tool_calls", [])
+    for tc in tool_calls:
+        func = tc.get("function", {})
+        try:
+            args = json.loads(func.get("arguments", "{}"))
+        except Exception:
+            args = {}
+        gemini_parts.append({
+            "functionCall": {
+                "name": func.get("name"),
+                "args": args
+            }
+        })
+        
+    candidate = {
+        "content": {
+            "role": "model",
+            "parts": gemini_parts
+        },
+        "finishReason": "STOP"
+    }
+    
+    return {"candidates": [candidate]}
+
+async def handle_request(request):
+    path = request.url.path
+    parts = path.split("/")
+    model_name = "qwen2.5:7b"
+    
+    # Tìm tên model từ URL (ví dụ: models/qwen2.5:7b:generateContent)
+    for p in parts:
+        if "generateContent" in p:
+            model_name = p.split(":")[0]
+            
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+        
+    logger.info(f"Gemini Request Path: {path} for Model: {model_name}")
+    
+    # Dịch định dạng
+    openai_req = translate_gemini_to_openai(body, model_name)
+    logger.info(f"Ollama Request: {json.dumps(openai_req, ensure_ascii=False)}")
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post(OLLAMA_URL, json=openai_req, timeout=60.0)
+            openai_resp = response.json()
+            logger.info(f"Ollama Response: {json.dumps(openai_resp, ensure_ascii=False)}")
+        except Exception as e:
+            logger.error(f"Error calling Ollama API: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+            
+    # Dịch ngược lại
+    gemini_resp = translate_openai_to_gemini(openai_resp)
+    
+    from starlette.responses import StreamingResponse
+    async def response_generator():
+        yield f"data: {json.dumps(gemini_resp)}\n\n"
+        
+    return StreamingResponse(response_generator(), media_type="text/event-stream")
+
+app = Starlette(routes=[
+    Route("/{path:path}", handle_request, methods=["POST"])
+])
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
