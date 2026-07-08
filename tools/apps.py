@@ -73,12 +73,14 @@ async def open_application(app_name: str, profile: str = None) -> str:
         return "Security warning: Application name contains invalid characters."
         
     if target in ["chrome", "browser"]:
-        profile_to_use = profile if profile else "Default"
-        profile_safe = profile_to_use.strip().replace('"', '')
-        if not re.match(r"^[a-zA-Z0-9_\-\s]+$", profile_safe):
-            return "Security warning: Profile name contains invalid characters."
-        # Use powershell Start-Process to avoid triggering Windows GUI popup on missing executables
-        cmd = f'powershell -Command "Start-Process \'{target}\' -ArgumentList \'--profile-directory=\\\"{profile_safe}\\\"\'"'
+        if profile:
+            profile_safe = profile.strip().replace('"', '')
+            if not re.match(r"^[a-zA-Z0-9_\-\s]+$", profile_safe):
+                return "Security warning: Profile name contains invalid characters."
+            cmd = f'powershell -Command "Start-Process \'{target}\' -ArgumentList \'--profile-directory=\\\"{profile_safe}\\\"\'"'
+        else:
+            # If no profile specified, launch directly to let the browser resolve default/active session
+            cmd = f'powershell -Command "Start-Process \'{target}\'"'
     else:
         cmd = f'powershell -Command "Start-Process \'{target}\'"'
     
@@ -102,7 +104,7 @@ async def open_application(app_name: str, profile: str = None) -> str:
             
             search_query = f"Download {app_name}"
             search_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(search_query)}"
-            cmd_search = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'--profile-directory=\\\"Default\\\"\', \'\\\"{search_url}\\\"\'"'
+            cmd_search = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'\\\"{search_url}\\\"\'"'
             
             proc_search = await asyncio.create_subprocess_shell(
                 cmd_search,
@@ -119,7 +121,7 @@ async def open_application(app_name: str, profile: str = None) -> str:
             browser_name = "Google Chrome" if browser_to_use == "chrome" else "Cốc Cốc"
             search_query = f"Download {app_name}"
             search_url = f"https://www.google.com/search?q={urllib.parse.quote_plus(search_query)}"
-            cmd_search = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'--profile-directory=\\\"Default\\\"\', \'\\\"{search_url}\\\"\'"'
+            cmd_search = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'\\\"{search_url}\\\"\'"'
             proc_search = await asyncio.create_subprocess_shell(
                 cmd_search,
                 stdout=asyncio.subprocess.PIPE,
@@ -141,7 +143,7 @@ async def browser_control(action: Literal["new_tab", "open_url"], url: str = Non
     browser_name = "Google Chrome" if browser_to_use == "chrome" else "Cốc Cốc"
     
     if action_lower == "new_tab":
-        cmd = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'--profile-directory=\\\"Default\\\"\', \'\\\"https://www.google.com\\\"\'"'
+        cmd = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'\\\"https://www.google.com\\\"\'"'
         try:
             process = await asyncio.create_subprocess_shell(
                 cmd,
@@ -167,7 +169,7 @@ async def browser_control(action: Literal["new_tab", "open_url"], url: str = Non
         if not re.match(r"^https?://[a-zA-Z0-9\-\.\/\?\&\=\#\_\%]+$", url_target):
             return "Security warning: URL contains invalid characters."
             
-        cmd = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'--profile-directory=\\\"Default\\\"\', \'\\\"{url_target}\\\"\'"'
+        cmd = f'powershell -Command "Start-Process \'{browser_to_use}\' -ArgumentList \'\\\"{url_target}\\\"\'"'
         try:
             process = await asyncio.create_subprocess_shell(
                 cmd,
