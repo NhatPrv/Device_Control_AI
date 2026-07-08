@@ -1,8 +1,26 @@
 import asyncio
 import queue
 import sys
+import os
 import numpy as np
 import sounddevice as sd
+
+# Dynamic CUDA DLL registration for Windows systems running local pip dependencies
+if sys.platform == "win32":
+    try:
+        import nvidia
+        nvidia_dir = list(nvidia.__path__)[0]
+        dll_paths = [
+            os.path.join(nvidia_dir, "cublas", "bin"),
+            os.path.join(nvidia_dir, "cudnn", "bin"),
+            os.path.join(nvidia_dir, "cuda_nvrtc", "bin"),
+        ]
+        for path in dll_paths:
+            if os.path.exists(path):
+                os.add_dll_directory(path)
+    except Exception:
+        pass
+
 from faster_whisper import WhisperModel
 
 class STTManager:
