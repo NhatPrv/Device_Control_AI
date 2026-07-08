@@ -72,31 +72,24 @@ def select_language_dialog() -> str:
 
 def parse_wake_word(speech: str) -> tuple[bool, str]:
     """
-    Checks if the speech contains any phonetic variation of the wake word "Hey Igris".
+    Checks if the speech contains any phonetic variation of the name "Igris" as a wake word.
     Returns (is_woken, command_part).
     """
     speech_lower = speech.lower().strip()
     
-    # List of common mis-transcriptions/phonetic variations of "Hey Igris" by Whisper
-    wake_variations = [
-        "hey igris", "hey egris", "hey e-gris", "hey igres", "hey igrees",
-        "hey, i'm chris", "hey im chris", "hey i'm chris",
-        "hey, i creed", "hey i creed", "hey i greed", "hey i greed",
-        "hey, i quit", "hey i quit",
-        "hey, i creeped", "hey i creeped",
-        "hey, i agree", "hey i agree",
-        "hey, i'm free", "hey im free",
-        "hey, i think", "hey i think",
-        "i eat it", "i'll be up for it", "ill be up for it",
-        "hay igris", "hai igris",
-        "ハイイクリー", "はい いくり", "hai ikuri"
+    # Core phonetic variations and common mis-transcriptions of the name "Igris"
+    core_wake_words = [
+        "igris", "egris", "e-gris", "igres", "igrees",
+        "i'm chris", "im chris", "i creed", "i greed",
+        "i quit", "i creeped", "i agree", "i'm free",
+        "im free", "i think", "i eat it", "ikuri", "イクリー"
     ]
     
-    for var in wake_variations:
-        idx = speech_lower.find(var)
+    for word in core_wake_words:
+        idx = speech_lower.find(word)
         if idx != -1:
             # Extract the command trailing the wake word and strip common punctuation
-            command_part = speech[idx + len(var):].strip(",.?!;\"' ")
+            command_part = speech[idx + len(word):].strip(",.?!;\"' ")
             if not any(c.isalnum() for c in command_part):
                 command_part = ""
             return True, command_part
