@@ -72,7 +72,7 @@ def speak(text: str):
                 if 'David' in voices.Item(i).GetDescription():
                     sapi.Voice = voices.Item(i)
                     break
-            sapi.Rate = -1   # Slightly slower = more dramatic, authoritative
+            sapi.Rate = 1   # +25% faster: -1 was slightly slow, 1 is crisp and commanding
             sapi.Volume = 100
             sapi.Speak(text)
         except Exception:
