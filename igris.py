@@ -80,6 +80,7 @@ def parse_wake_word(speech: str) -> tuple[bool, str]:
     # Core phonetic variations and common mis-transcriptions of the name "Igris"
     core_wake_words = [
         "igris", "egris", "e-gris", "igres", "igrees",
+        "i gris", "i-gris", "hey gris", "hay gris", "hai gris", "hi gris",
         "i'm chris", "im chris", "i creed", "i greed",
         "i quit", "i creeped", "i agree", "i'm free",
         "im free", "i think", "i eat it", "ikuri", "イクリー"
