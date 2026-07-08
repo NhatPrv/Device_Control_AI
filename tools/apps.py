@@ -4,11 +4,11 @@ import webbrowser
 
 async def open_application(app_name: str) -> str:
     """
-    Mở phần mềm hệ thống (Chrome, Notepad, Calculator...).
+    Open system application (Chrome, Notepad, Calculator...).
     """
     app_lower = app_name.lower().strip()
     
-    # Bản đồ ánh xạ tên ứng dụng tiếng Việt / tiếng Anh phổ biến
+    # Common Vietnamese/English application mapping dictionary
     app_map = {
         "chrome": "chrome",
         "google chrome": "chrome",
@@ -31,14 +31,14 @@ async def open_application(app_name: str) -> str:
     
     target = app_map.get(app_lower, app_lower)
     
-    # Kiểm tra an toàn: Chỉ cho phép ký tự chữ, số, dấu cách và dấu gạch dưới/gạch ngang/chấm
+    # Safety check: Only allow alphanumeric characters, spaces, dots, dashes, and underscores.
     if not re.match(r"^[a-zA-Z0-9_\-\.\s]+$", target):
-        return "Cảnh báo an toàn: Tên ứng dụng chứa các ký tự không hợp lệ."
+        return "Security warning: Application name contains invalid characters."
         
     cmd = f"cmd.exe /c start \"\" \"{target}\""
     
     try:
-        # Sử dụng create_subprocess_shell để chạy lệnh start trong cmd
+        # Use create_subprocess_shell to run start command in cmd
         process = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -47,45 +47,45 @@ async def open_application(app_name: str) -> str:
         stdout, stderr = await process.communicate()
         
         if process.returncode == 0:
-            return f"Đã mở ứng dụng '{app_name}' thành công."
+            return f"Successfully opened application '{app_name}'."
         else:
             err_msg = stderr.decode(errors='ignore').strip()
-            return f"Không thể mở ứng dụng '{app_name}'. Lỗi: {err_msg}"
+            return f"Failed to open application '{app_name}'. Error: {err_msg}"
     except Exception as e:
-        return f"Lỗi hệ thống khi mở ứng dụng '{app_name}': {str(e)}"
+        return f"System error while opening application '{app_name}': {str(e)}"
 
 async def browser_control(action: str, url: str = None) -> str:
     """
-    Thao tác trình duyệt (new_tab: Mở tab mới, open_url: mở trang web chỉ định).
+    Browser action (new_tab: Open new tab, open_url: Open specified URL).
     """
     action_lower = action.lower().strip()
     
     if action_lower == "new_tab":
         try:
-            # Mở tab mới mặc định trang tìm kiếm Google
+            # Open new tab defaulting to Google search
             await asyncio.to_thread(webbrowser.open_new_tab, "https://www.google.com")
-            return "Đã mở tab mới thành công."
+            return "Successfully opened a new tab."
         except Exception as e:
-            return f"Không thể mở tab mới. Lỗi: {str(e)}"
+            return f"Failed to open a new tab. Error: {str(e)}"
             
     elif action_lower == "open_url":
         if not url:
-            return "Lỗi: Không tìm thấy địa chỉ URL hợp lệ."
+            return "Error: Valid URL not specified."
             
         url_target = url.strip()
         
-        # Chuẩn hóa URL nếu chưa có schema
+        # Normalize URL if no schema is provided
         if not re.match(r"^https?://", url_target, re.IGNORECASE):
             url_target = "https://" + url_target
             
-        # Kiểm tra tính hợp lệ cơ bản của URL để đảm bảo an toàn
+        # Basic URL validation to ensure safety
         if not re.match(r"^https?://[a-zA-Z0-9\-\.\/\?\&\=\#\_\%]+$", url_target):
-            return "Cảnh báo an toàn: Địa chỉ URL chứa ký tự không hợp lệ."
+            return "Security warning: URL contains invalid characters."
             
         try:
             await asyncio.to_thread(webbrowser.open, url_target)
-            return f"Đã điều hướng trình duyệt đến trang: {url_target}"
+            return f"Successfully navigated browser to: {url_target}"
         except Exception as e:
-            return f"Không thể truy cập trang '{url_target}'. Lỗi: {str(e)}"
+            return f"Failed to access page '{url_target}'. Error: {str(e)}"
     else:
-        return f"Hành động '{action}' không được hỗ trợ trong điều khiển trình duyệt."
+        return f"Action '{action}' is not supported in browser controls."
