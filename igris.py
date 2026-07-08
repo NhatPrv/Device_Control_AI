@@ -31,9 +31,13 @@ def parse_wake_word(speech: str) -> tuple[bool, str]:
     # List of common mis-transcriptions/phonetic variations of "Hey Igris" by Whisper
     wake_variations = [
         "hey igris", "hey egris", "hey e-gris", "hey igres", "hey igrees",
-        "hey, i'm chris", "hey im chris", "hey i'm chris", "hey, i'm chris",
-        "hey, i creed", "hey i creed", "hey i greed",
+        "hey, i'm chris", "hey im chris", "hey i'm chris",
+        "hey, i creed", "hey i creed", "hey i greed", "hey i greed",
+        "hey, i quit", "hey i quit",
+        "hey, i creeped", "hey i creeped",
+        "hey, i agree", "hey i agree",
         "hey agreed", "hey i agreed", "hey chris",
+        "i'll be up for it", "ill be up for it",
         "hay igris", "hai igris",
         "ハイイクリー", "はい いくり", "hai ikuri"
     ]
