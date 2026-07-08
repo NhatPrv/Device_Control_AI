@@ -36,8 +36,9 @@ def parse_wake_word(speech: str) -> tuple[bool, str]:
         "hey, i quit", "hey i quit",
         "hey, i creeped", "hey i creeped",
         "hey, i agree", "hey i agree",
-        "hey agreed", "hey i agreed", "hey chris",
-        "i'll be up for it", "ill be up for it",
+        "hey, i'm free", "hey im free",
+        "hey, i think", "hey i think",
+        "i eat it", "i'll be up for it", "ill be up for it",
         "hay igris", "hai igris",
         "ハイイクリー", "はい いくり", "hai ikuri"
     ]
