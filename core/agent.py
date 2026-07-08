@@ -1,6 +1,6 @@
 import os
 import google.antigravity as ag
-from tools.apps import open_application, browser_control
+from tools.apps import open_application, browser_control, switch_to_app
 from tools.system import get_battery_status, control_volume, control_brightness
 
 # Define personality of loyal guardian knight Igris
@@ -42,6 +42,7 @@ def get_agent_config(conversation_id: str = None) -> ag.LocalAgentConfig:
     
     # Register system and application control tools
     tools_list = [
+        switch_to_app,
         open_application,
         browser_control,
         get_battery_status,

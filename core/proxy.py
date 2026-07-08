@@ -26,6 +26,7 @@ Rules:
 2. When a command is successfully executed via a tool call, stop immediately and return one final cool confirmation line. DO NOT loop with more tool calls.
 3. If the master says a confirmation word like "yes", "y", "có", "đúng", "xác nhận", just respond with a cool short acknowledgment (e.g., "As you command, Master.") and DO NOT invoke any tools again.
 4. If the Master asks to open Cốc Cốc, Coc Coc, or Cocococ browser, use open_application(app_name="browser").
+5. CRITICAL: If the Master says "switch to", "go to", "focus on", or "bring up" an app, use switch_to_app — NOT open_application. switch_to_app focuses the already-running window. open_application launches a new instance.
 """
 
 def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
@@ -144,6 +145,16 @@ def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
                 }
             },
             "required": ["action"]
+        },
+        "switch_to_app": {
+            "type": "object",
+            "properties": {
+                "app_name": {
+                    "type": "string",
+                    "description": "Name of the already-running application window to focus (e.g. 'chrome', 'browser', 'coc coc', 'notepad')."
+                }
+            },
+            "required": ["app_name"]
         }
     }
     

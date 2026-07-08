@@ -3,6 +3,7 @@ import re
 import urllib.parse
 from typing import Literal
 import win32gui
+import win32con
 import win32process
 import psutil
 
@@ -23,6 +24,69 @@ async def get_active_browser() -> str:
     except Exception:
         pass
     return "chrome"
+
+async def switch_to_app(app_name: str) -> str:
+    """
+    Switch focus to an already running application window by bringing it to the foreground.
+    Use this tool when the Master says 'switch to', 'go to', 'focus on', or 'bring up' an app.
+    Do NOT use open_application for this — only use switch_to_app when the app is already running.
+
+    Parameters:
+    - app_name: Name of the app to focus (e.g., 'chrome', 'browser', 'coc coc', 'notepad').
+    """
+    app_lower = app_name.lower().strip()
+
+    # Map friendly names to executable process names
+    proc_map = {
+        "chrome": "chrome",
+        "google chrome": "chrome",
+        "coc coc": "browser",
+        "cốc cốc": "browser",
+        "cocococ": "browser",
+        "coc coc browser": "browser",
+        "browser": "browser",
+        "notepad": "notepad",
+        "calculator": "calc",
+        "word": "winword",
+        "excel": "excel",
+        "explorer": "explorer",
+        "powershell": "powershell",
+        "cmd": "cmd",
+    }
+
+    target_proc = proc_map.get(app_lower, app_lower.split()[0])
+
+    found_hwnd = None
+
+    def enum_callback(hwnd, _):
+        nonlocal found_hwnd
+        if not win32gui.IsWindowVisible(hwnd):
+            return
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            proc = psutil.Process(pid)
+            pname = proc.name().lower().replace(".exe", "")
+            if target_proc.lower() in pname or pname in target_proc.lower():
+                if win32gui.GetWindowText(hwnd):
+                    found_hwnd = hwnd
+        except Exception:
+            pass
+
+    win32gui.EnumWindows(enum_callback, None)
+
+    if found_hwnd:
+        try:
+            # Restore if minimized, then bring to front
+            if win32gui.IsIconic(found_hwnd):
+                win32gui.ShowWindow(found_hwnd, win32con.SW_RESTORE)
+            win32gui.SetForegroundWindow(found_hwnd)
+            title = win32gui.GetWindowText(found_hwnd)
+            return f"Switched to '{app_name}' — window '{title}' is now in focus."
+        except Exception as e:
+            return f"Found '{app_name}' but failed to focus it: {e}"
+    else:
+        return f"No running window found for '{app_name}'. Use open_application to launch it first."
+
 
 async def open_application(app_name: str, profile: str = None) -> str:
     """
