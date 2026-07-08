@@ -95,8 +95,10 @@ def parse_wake_word(speech: str) -> tuple[bool, str]:
     for var in wake_variations:
         idx = speech_lower.find(var)
         if idx != -1:
-            # Extract the command trailing the wake word
-            command_part = speech[idx + len(var):].strip(",. ")
+            # Extract the command trailing the wake word and strip common punctuation
+            command_part = speech[idx + len(var):].strip(",.?!;\"' ")
+            if not any(c.isalnum() for c in command_part):
+                command_part = ""
             return True, command_part
             
     return False, ""
