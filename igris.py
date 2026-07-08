@@ -2,7 +2,6 @@ import asyncio
 import sys
 import os
 import subprocess
-import tkinter as tk
 import google.antigravity as ag
 from core.stt import STTManager
 from core.agent import get_agent_config
@@ -21,54 +20,6 @@ BANNER = """
   - Exit command: "Retreat".
 ===================================================================
 """
-
-def select_language_dialog() -> str:
-    """
-    Shows a GUI popup dialog using Tkinter to select the preferred language.
-    Returns 'en' or 'vi'.
-    """
-    selected = "en"
-    
-    root = tk.Tk()
-    root.title("Igris - Select Language")
-    root.geometry("320x150")
-    root.resizable(False, False)
-    # Center window
-    root.eval('tk::PlaceWindow . center')
-    
-    # Label
-    label = tk.Label(
-        root, 
-        text="Select Preferred Language:\nChọn Ngôn Ngữ Bạn Muốn Dùng:", 
-        font=("Arial", 11),
-        justify=tk.CENTER
-    )
-    label.pack(pady=15)
-    
-    def set_en():
-        nonlocal selected
-        selected = "en"
-        root.destroy()
-        
-    def set_vi():
-        nonlocal selected
-        selected = "vi"
-        root.destroy()
-        
-    btn_frame = tk.Frame(root)
-    btn_frame.pack(pady=5)
-    
-    btn_en = tk.Button(btn_frame, text="English (en)", command=set_en, width=13, font=("Arial", 10))
-    btn_en.pack(side=tk.LEFT, padx=12)
-    
-    btn_vi = tk.Button(btn_frame, text="Tiếng Việt (vi)", command=set_vi, width=13, font=("Arial", 10))
-    btn_vi.pack(side=tk.LEFT, padx=12)
-    
-    # Set window on top
-    root.attributes('-topmost', True)
-    root.mainloop()
-    
-    return selected
 
 def parse_wake_word(speech: str) -> tuple[bool, str]:
     """
@@ -124,10 +75,7 @@ async def execute_command(agent, command: str):
         print(f"\n[Igris]: Error while executing command: {e}")
 
 async def main():
-    # 1. Show GUI language selector popup first
-    selected_lang = select_language_dialog()
-    
-    # 2. Start proxy on port 8000 in background and log to proxy.log
+    # 1. Start proxy on port 8000 in background and log to proxy.log
     proxy_path = os.path.join(os.path.dirname(__file__), "core", "proxy.py")
     log_file = open("proxy.log", "w", encoding="utf-8")
     try:
@@ -145,16 +93,13 @@ async def main():
     await asyncio.sleep(2.0)
     
     try:
-        # 3. Initialize STT with chosen language and Agent config
-        stt_manager = STTManager(language=selected_lang)
+        # 2. Initialize STT with English language and Agent config
+        stt_manager = STTManager(language="en")
         config = get_agent_config()
         
-        # 4. Start communication session with Agent
+        # 3. Start communication session with Agent
         async with ag.Agent(config) as agent:
-            if selected_lang == "vi":
-                print("\nIgris: Đang lắng nghe...")
-            else:
-                print("\nIgris: Standby...")
+            print("\nIgris: Standby...")
                 
             while True:
                 speech = await stt_manager.listen()
@@ -175,18 +120,12 @@ async def main():
                     clear_screen()
                     
                     # Ask Master what they want
-                    if selected_lang == "vi":
-                        print("\n[Igris]: Dạ, thưa Chủ nhân! Người muốn gì?")
-                    else:
-                        print("\n[Igris]: Yes, Master! What do you want?")
+                    print("\n[Igris]: Yes, Master! What do you want?")
                         
                     # Wait for command (no timeout)
                     command = await stt_manager.listen()
                     if not command:
-                        if selected_lang == "vi":
-                            print("\nIgris: Đang lắng nghe...")
-                        else:
-                            print("\nIgris: Standby...")
+                        print("\nIgris: Standby...")
                         continue
                         
                     cmd_lower = command.lower().strip()
@@ -195,60 +134,36 @@ async def main():
                         break
                         
                     # Check for immediate cancel
-                    if cmd_lower in ["cancel", "hủy", "huy"]:
-                        if selected_lang == "vi":
-                            print("\n[Igris]: Đã hủy lệnh.")
-                            print("\nIgris: Đang lắng nghe...")
-                        else:
-                            print("\n[Igris]: Command canceled.")
-                            print("\nIgris: Standby...")
+                    if cmd_lower in ["cancel", "stop", "reject"]:
+                        print("\n[Igris]: Command canceled.")
+                        print("\nIgris: Standby...")
                         continue
                         
                     # Ask for confirmation
-                    if selected_lang == "vi":
-                        print(f"\n[Igris]: Chủ nhân muốn \"{command}\" phải không?")
-                    else:
-                        print(f"\n[Igris]: You want me to \"{command}\", correct?")
+                    print(f"\n[Igris]: You want me to \"{command}\", correct?")
                         
                     # Listen for confirmation (no timeout)
                     confirm_speech = await stt_manager.listen()
                     if not confirm_speech:
-                        if selected_lang == "vi":
-                            print("\n[Igris]: Đã hủy lệnh.")
-                            print("\nIgris: Đang lắng nghe...")
-                        else:
-                            print("\n[Igris]: Command canceled.")
-                            print("\nIgris: Standby...")
+                        print("\n[Igris]: Command canceled.")
+                        print("\nIgris: Standby...")
                         continue
                         
                     confirm_lower = confirm_speech.lower().strip()
-                    if selected_lang == "vi":
-                        yes_keywords = ["có", "co", "xác nhận", "xac nhan", "đúng", "dung", "yes", "y", "đồng ý", "dong y", "chấp nhận", "chap nhan", "ok"]
-                        no_keywords = ["không", "khong", "hủy", "huy", "no", "n", "từ chối", "tu choi", "bỏ qua", "bo qua"]
-                    else:
-                        yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok", "accept", "approve", "agree", "proceed"]
-                        no_keywords = ["no", "n", "cancel", "incorrect", "stop", "reject", "deny", "refuse", "decline"]
+                    yes_keywords = ["yes", "y", "confirm", "correct", "sure", "ok", "accept", "approve", "agree", "proceed"]
+                    no_keywords = ["no", "n", "cancel", "incorrect", "stop", "reject", "deny", "refuse", "decline"]
                         
                     is_yes = any(kw in confirm_lower for kw in yes_keywords)
                     is_no = any(kw in confirm_lower for kw in no_keywords)
                     
                     if is_yes and not is_no:
-                        if selected_lang == "vi":
-                            print("\n[Igris]: Đã xác nhận. Bắt đầu thực thi...")
-                        else:
-                            print("\n[Igris]: Confirmed. Executing...")
+                        print("\n[Igris]: Confirmed. Executing...")
                         await execute_command(agent, command)
                     else:
-                        if selected_lang == "vi":
-                            print("\n[Igris]: Đã hủy lệnh.")
-                        else:
-                            print("\n[Igris]: Command canceled.")
+                        print("\n[Igris]: Command canceled.")
                             
                     # Back to standby
-                    if selected_lang == "vi":
-                        print("\nIgris: Đang lắng nghe...")
-                    else:
-                        print("\nIgris: Standby...")
+                    print("\nIgris: Standby...")
                 else:
                     continue
                         
