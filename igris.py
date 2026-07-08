@@ -131,16 +131,18 @@ async def main():
     # 1. Show GUI language selector popup first
     selected_lang = select_language_dialog()
     
-    # 2. Start proxy on port 8000 in background quietly
+    # 2. Start proxy on port 8000 in background and log to proxy.log
     proxy_path = os.path.join(os.path.dirname(__file__), "core", "proxy.py")
+    log_file = open("proxy.log", "w", encoding="utf-8")
     try:
         proxy_process = subprocess.Popen(
             [sys.executable, proxy_path],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stdout=log_file,
+            stderr=log_file
         )
     except Exception as e:
         print(f"Error: Unable to start local proxy port: {e}")
+        log_file.close()
         return
         
     # Wait 2 seconds for proxy to start up completely
@@ -260,8 +262,15 @@ async def main():
     finally:
         # Stop proxy when exit
         print("\nIgris: Disconnecting ports...")
-        proxy_process.terminate()
-        proxy_process.wait()
+        try:
+            proxy_process.terminate()
+            proxy_process.wait()
+        except Exception:
+            pass
+        try:
+            log_file.close()
+        except Exception:
+            pass
         print("Igris: Disconnected successfully.")
 
 if __name__ == "__main__":
