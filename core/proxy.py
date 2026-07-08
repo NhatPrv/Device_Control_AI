@@ -26,9 +26,18 @@ def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
     # 1. Force Igris system prompt and ignore injected developer system prompt
     messages.append({"role": "system", "content": IGRIS_SYSTEM_PROMPT})
             
-    # 2. Get conversation history
+    # 2. Get conversation history and isolate the current active turn
     contents = body.get("contents", [])
-    for content in contents:
+    last_user_idx = 0
+    for i, content in enumerate(contents):
+        role = content.get("role", "user")
+        parts = content.get("parts", [])
+        is_tool_response = any("functionResponse" in p for p in parts)
+        if role == "user" and not is_tool_response:
+            last_user_idx = i
+            
+    active_contents = contents[last_user_idx:]
+    for content in active_contents:
         role = content.get("role", "user")
         openai_role = "assistant" if role == "model" else "user"
         parts = content.get("parts", [])
