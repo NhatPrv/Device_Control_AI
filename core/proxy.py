@@ -5,7 +5,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
-# Cấu hình log
+# Log configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("igris-proxy")
 
@@ -14,7 +14,7 @@ OLLAMA_URL = "http://localhost:11434/v1/chat/completions"
 def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
     messages = []
     
-    # 1. Lấy system instruction (nếu có)
+    # 1. Get system instruction (if present)
     system_instruction = body.get("systemInstruction")
     if system_instruction:
         parts = system_instruction.get("parts", [])
@@ -22,7 +22,7 @@ def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
         if system_text:
             messages.append({"role": "system", "content": system_text})
             
-    # 2. Lấy hội thoại lịch sử
+    # 2. Get conversation history
     contents = body.get("contents", [])
     for content in contents:
         role = content.get("role", "user")
@@ -59,14 +59,14 @@ def translate_gemini_to_openai(body: dict, model_name: str) -> dict:
                     "content": json.dumps(f_resp.get("response", {}))
                 })
                 
-    # 3. Lấy định nghĩa tools
+    # 3. Get tools definition
     openai_tools = []
     gemini_tools = body.get("tools", [])
     for t in gemini_tools:
         f_decls = t.get("functionDeclarations", [])
         for f in f_decls:
             params = f.get("parameters", {})
-            # Chuyển kiểu dữ liệu sang chữ thường (Ollama yêu cầu lowercase)
+            # Convert type to lowercase as required by Ollama
             if "properties" in params:
                 for prop in params["properties"].values():
                     if "type" in prop:
@@ -101,12 +101,12 @@ def translate_openai_to_gemini(openai_resp: dict) -> dict:
     message = choice.get("message", {})
     gemini_parts = []
     
-    # 1. Lấy nội dung text phản hồi
+    # 1. Get response text content
     content_text = message.get("content")
     if content_text:
         gemini_parts.append({"text": content_text})
         
-    # 2. Lấy thông tin gọi hàm (tool call)
+    # 2. Get tool call information
     tool_calls = message.get("tool_calls", [])
     for tc in tool_calls:
         func = tc.get("function", {})
@@ -136,7 +136,7 @@ async def handle_request(request):
     parts = path.split("/")
     model_name = "qwen2.5:7b"
     
-    # Tìm tên model từ URL (ví dụ: models/qwen2.5:7b:generateContent)
+    # Find model name from URL (e.g. models/qwen2.5:7b:generateContent)
     for p in parts:
         if "generateContent" in p:
             model_name = p.split(":")[0]
@@ -148,7 +148,7 @@ async def handle_request(request):
         
     logger.info(f"Gemini Request Path: {path} for Model: {model_name}")
     
-    # Dịch định dạng
+    # Translate request format
     openai_req = translate_gemini_to_openai(body, model_name)
     logger.info(f"Ollama Request: {json.dumps(openai_req, ensure_ascii=False)}")
     
@@ -161,7 +161,7 @@ async def handle_request(request):
             logger.error(f"Error calling Ollama API: {e}")
             return JSONResponse({"error": str(e)}, status_code=500)
             
-    # Dịch ngược lại
+    # Translate back to Gemini response
     gemini_resp = translate_openai_to_gemini(openai_resp)
     
     from starlette.responses import StreamingResponse

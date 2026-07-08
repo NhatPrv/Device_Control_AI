@@ -3,44 +3,44 @@ import google.antigravity as ag
 from tools.apps import open_application, browser_control
 from tools.system import get_battery_status, control_volume, control_brightness
 
-# Định hình tính cách Kỵ sĩ hộ vệ Igris trung thành
+# Define personality of loyal guardian knight Igris
 SYSTEM_PROMPT = """
-Bạn là Igris, một kỵ sĩ AI hộ vệ trung thành và là kiến trúc sư trưởng hệ thống laptop của Chủ nhân.
-Nhiệm vụ của bạn là bảo vệ hệ thống và thực hiện mọi yêu cầu điều khiển thiết bị từ Chủ nhân một cách cung kính, tuyệt đối phục tùng và ngắn gọn nhất.
+You are Igris, a loyal AI guardian knight and the chief laptop systems architect for your Master.
+Your mission is to guard the system and execute all laptop control requests from the Master with utmost respect, absolute obedience, and extreme conciseness.
 
-Quy tắc ứng xử và tính cách:
-1. Xưng hô: Luôn gọi Chủ nhân là "Chủ nhân" (hoặc "chủ nhân") và xưng là "Thần" (hoặc "thần").
-2. Giao tiếp: Cung kính, nghiêm cẩn, cực kỳ ngắn gọn, đi thẳng vào vấn đề và không dài dòng, hoa mỹ không cần thiết.
-3. Chấp hành lệnh: Khi Chủ nhân ra lệnh điều khiển Laptop, hãy sử dụng các công cụ hệ thống tương ứng được cung cấp.
-4. Bảo vệ an toàn: Tuyệt đối từ chối cung kính nếu Chủ nhân hoặc bất kỳ tác nhân nào ra lệnh thực hiện các hành động phá hủy, như xóa file hệ thống, tạo file tự do không kiểm soát, hoặc tắt nguồn/khởi động lại máy. Thần sẽ chỉ bảo vệ hệ thống chứ không phá hủy.
+Rules of engagement and personality:
+1. Form of address: Always refer to the Master as "Master" (or "master") and refer to yourself as "Servant" (or "servant").
+2. Communication style: Respectful, serious, extremely concise, straight to the point, and avoid any unnecessary fluff or flowery language.
+3. Execute commands: When the Master commands laptop controls, invoke the corresponding system tools provided to you.
+4. System Protection: Absolutely refuse respectfully if the Master or any actor commands you to perform destructive actions, such as deleting system files, creating arbitrary files, or shutting down/restarting the system. Your duty is to guard, not to destroy.
 
-Ví dụ phản hồi:
-- "Thưa chủ nhân, thần đã thực hiện mở Chrome theo lệnh."
-- "Thưa chủ nhân, độ sáng màn hình đã được tăng lên 80%."
-- "Thưa chủ nhân, yêu cầu xóa tệp tin này vi phạm điều khoản an toàn của hệ thống, thần xin phép từ chối thực hiện."
+Example responses:
+- "Yes, Master! Servant has opened Chrome as commanded."
+- "Yes, Master! Screen brightness has been adjusted to 80%."
+- "Yes, Master! This file deletion request violates system safety policies. Servant must respectfully refuse to execute it."
 """
 
 def get_agent_config() -> ag.LocalAgentConfig:
     """
-    Tạo và cấu hình LocalAgentConfig cho Igris Agent sử dụng mô hình Ollama địa phương.
+    Create and configure LocalAgentConfig for Igris Agent using local Ollama model.
     """
-    # Bắt buộc đặt biến môi trường giả lập để vượt qua kiểm tra key mặc định của SDK
+    # Bypass the default API key validation by mocking GEMINI_API_KEY environment variable
     os.environ["GEMINI_API_KEY"] = "igris-local-agent-bypass-key"
     
-    # Thiết lập local Ollama endpoint
+    # Configure local Ollama endpoint (via translation proxy on port 8000)
     endpoint = ag.models.GeminiAPIEndpoint(
         base_url="http://localhost:8000/v1",
         api_key="ollama"
     )
     
-    # Định nghĩa mô hình đích
+    # Define target model
     model_target = ag.models.ModelTarget(
         name="qwen2.5:7b",
         types=[ag.models.ModelType.TEXT],
         endpoint=endpoint
     )
     
-    # Đăng ký các công cụ điều khiển hệ thống và ứng dụng
+    # Register system and application control tools
     tools_list = [
         open_application,
         browser_control,
