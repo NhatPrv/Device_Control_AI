@@ -4,7 +4,8 @@ import webbrowser
 
 async def open_application(app_name: str) -> str:
     """
-    Open system application (Chrome, Notepad, Calculator...).
+    Open a local system application by name (e.g. 'chrome' to open Google Chrome, 'notepad', 'calc' for calculator).
+    Use this tool if the user explicitly asks to open or launch the Google Chrome browser or any local app.
     """
     app_lower = app_name.lower().strip()
     
@@ -53,10 +54,12 @@ async def open_application(app_name: str) -> str:
             return f"Failed to open application '{app_name}'. Error: {err_msg}"
     except Exception as e:
         return f"System error while opening application '{app_name}': {str(e)}"
-
+ 
 async def browser_control(action: str, url: str = None) -> str:
     """
-    Browser action (new_tab: Open new tab, open_url: Open specified URL).
+    Control default browser actions (new_tab: Open new tab, open_url: Open specified URL).
+    This tool opens the default system browser (which might be Microsoft Edge).
+    Warning: If the user specifically requests to open the 'Google Chrome' browser, do NOT use this tool; use open_application(app_name='chrome') instead.
     """
     action_lower = action.lower().strip()
     
