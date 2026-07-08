@@ -47,7 +47,8 @@ class STTManager:
                 audio_data, 
                 beam_size=5,
                 vad_filter=True,  # Use built-in Silero VAD to filter out silence/noise
-                vad_parameters=dict(min_silence_duration_ms=500)
+                vad_parameters=dict(min_silence_duration_ms=500),
+                initial_prompt="Hey Igris, open Chrome, check the battery, volume, brightness, mở máy tính, tăng độ sáng, retreat"
             )
             text = "".join(segment.text for segment in segments)
             return text.strip()
